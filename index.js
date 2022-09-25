@@ -1,24 +1,19 @@
+require("dotenv").config();
+
 const express = require("express");
-const multer = require("multer");
+const bodyParser = require("body-parser");
 
 const app = express();
 
-const storage = multer.diskStorage({
-  destination: function (request, file, callback) {
-    callback(null, "./uploads");
-  },
-  filename: function (request, file, callback) {
-    const file_arr = file.originalname.split(".");
-    callback(null, `${file_arr[0]}-${Date.now()}.${file_arr[1]}`);
-  },
-});
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
-const upload = multer({
-  storage: storage,
-});
+const path = require("path");
 
-app.post("/create-cv", upload.single("file"), (req, res) => {
-  res.json({ file: req.file });
-});
+app.use(express.static(path.join(__dirname, "public")));
 
-app.listen(8081, () => console.log("Running on localhost:8081"));
+require("./router/cv_router")(app);
+
+app.listen(process.env.PORT, process.env.HOST, () => {
+  console.log(`Running on ${process.env.HOST}:${process.env.PORT}`);
+});
