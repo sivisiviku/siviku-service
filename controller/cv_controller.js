@@ -6,8 +6,8 @@ exports.create = async (req, res) => {
     let responseData = {};
     const insertedBio = await cv_model.create(
       `users_bio`,
-      `users_id, first_name, last_name, occupation, photo, created, updated, created_by, updated_by`,
-      `1, "${req.body.firstName}", "${req.body.lastName}", "${req.body.occupation}", "${req.body.photo}", now(), now(), 1, 1`
+      `users_id, first_name, last_name, occupation, photo, summary, created, updated, created_by, updated_by`,
+      `1, "${req.body.firstName}", "${req.body.lastName}", "${req.body.occupation}", "${req.body.photo}", "${req.body.summary}", now(), now(), 1, 1`
     );
     if (insertedBio.data.insertId > 0) {
       responseData.users_bio_id = insertedBio.data.insertId;
@@ -18,7 +18,7 @@ exports.create = async (req, res) => {
       );
       if (insertedContact.data.insertId > 0) {
         responseData.users_contact_id = insertedContact.data.insertId;
-        const values = req.body.languages.map((language) => [
+        const languageValues = req.body.languages.map((language) => [
           "1",
           language,
           dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
@@ -29,12 +29,29 @@ exports.create = async (req, res) => {
         const insertedLanguages = await cv_model.create_bulk(
           `users_languages`,
           `users_id, language, created, updated, created_by, updated_by`,
-          values
+          languageValues
         );
-        if (insertedLanguages.data.affectedRows === values.length) {
+        if (insertedLanguages.data.affectedRows === languageValues.length) {
           responseData.languages_count = insertedLanguages.data.affectedRows;
-          // insert summary
-          responseData.status = insertedLanguages.status; // should be called at the very end of insertion process
+          const skillValues = req.body.skills.map((skill) => [
+            "1",
+            skill.name,
+            skill.level,
+            dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+            dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+            "1",
+            "1",
+          ]);
+          const insertedSkills = await cv_model.create_bulk(
+            `users_skills`,
+            `users_id, name, level, created, updated, created_by, updated_by`,
+            skillValues
+          );
+          if (insertedSkills.data.affectedRows === skillValues.length) {
+            responseData.skills_count = insertedSkills.data.affectedRows;
+            //insert experience
+            responseData.status = insertedSkills.status; // should be called at the very end of insertion process
+          }
         }
       } else {
         // delete last inserted bio
