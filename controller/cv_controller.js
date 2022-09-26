@@ -1,4 +1,5 @@
 const cv_model = require("../model/cv_model");
+const dateformat = require("dateformat");
 
 exports.create = async (req, res) => {
   try {
@@ -17,7 +18,24 @@ exports.create = async (req, res) => {
       );
       if (insertedContact.data.insertId > 0) {
         responseData.users_contact_id = insertedContact.data.insertId;
-        responseData.status = insertedContact.status; // should be called at the very end of insertion process
+        const values = req.body.languages.map((language) => [
+          "1",
+          language,
+          dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+          dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+          "1",
+          "1",
+        ]);
+        const insertedLanguages = await cv_model.create_bulk(
+          `users_languages`,
+          `users_id, language, created, updated, created_by, updated_by`,
+          values
+        );
+        if (insertedLanguages.data.affectedRows === values.length) {
+          responseData.languages_count = insertedLanguages.data.affectedRows;
+          // insert summary
+          responseData.status = insertedLanguages.status; // should be called at the very end of insertion process
+        }
       } else {
         // delete last inserted bio
       }

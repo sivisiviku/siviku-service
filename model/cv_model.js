@@ -9,6 +9,15 @@ exports.create = async (table, columns, values) => {
   return result;
 };
 
+exports.create_bulk = async (table, columns, values) => {
+  const result = await query.execute_bulk(
+    database,
+    `insert into ${table}(${columns}) VALUES ?`,
+    values
+  );
+  return result;
+};
+
 exports.update = async (table, set, where) => {
   const result = await query.execute(
     database,
