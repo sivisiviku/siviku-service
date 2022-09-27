@@ -11,8 +11,22 @@ const storage = multer.diskStorage({
   },
 });
 
+const fileFilter = function (req, file, cb) {
+  const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+  if (!allowedTypes.includes(file.mimetype)) {
+    const error = new Error();
+    error.code = "LIMIT_FILE_TYPES";
+    return cb(error, false);
+  }
+  cb(null, true);
+};
+
 const upload = multer({
   storage: storage,
+  fileFilter,
+  limits: {
+    fileSize: 200000,
+  },
 });
 
 module.exports = (app) => {
