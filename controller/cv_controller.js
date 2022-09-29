@@ -30,7 +30,8 @@ exports.create = async (req, res) => {
         // INSERT LANGUAGES
         const languageValues = req.body.languages.map((language) => [
           "1",
-          language,
+          language.name,
+          language.level,
           dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
           dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
           "1",
@@ -38,7 +39,7 @@ exports.create = async (req, res) => {
         ]);
         const insertedLanguages = await cv_model.create_bulk(
           `users_languages`,
-          `users_id, language, created, updated, created_by, updated_by`,
+          `users_id, name, level, created, updated, created_by, updated_by`,
           languageValues
         );
 
