@@ -25,3 +25,11 @@ exports.update = async (table, set, where) => {
   );
   return result;
 };
+
+exports.readBy = async (table, where) => {
+  result = await query.execute(
+    database,
+    `select * from ${table} where ${where}`
+  );
+  return result;
+};

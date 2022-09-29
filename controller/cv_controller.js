@@ -210,3 +210,102 @@ exports.upload_photo = async (req, res) => {
     });
   }
 };
+
+exports.view = async (req, res) => {
+  try {
+    const usersBio = await cv_model.readBy(
+      `users_bio`,
+      `users_id=${req.params.id}`
+    );
+    const usersCertifications = await cv_model.readBy(
+      `users_certifications`,
+      `users_id=${req.params.id}`
+    );
+    const usersContact = await cv_model.readBy(
+      `users_contact`,
+      `users_id=${req.params.id}`
+    );
+
+    const usersEducations = await cv_model.readBy(
+      `users_educations`,
+      `users_id=${req.params.id}`
+    );
+
+    for (let i = 0; i < usersEducations.data.length; i++) {
+      const newDate = new Date(usersEducations.data[i].date_graduated);
+      usersEducations.data[i].date_graduated = newDate.getFullYear();
+    }
+
+    const usersExperiences = await cv_model.readBy(
+      `users_experiences`,
+      `users_id=${req.params.id}`
+    );
+
+    for (let i = 0; i < usersExperiences.data.length; i++) {
+      usersExperiences.data[i].date_start = formatDate(
+        usersExperiences.data[i].date_start
+      );
+      usersExperiences.data[i].date_end = formatDate(
+        usersExperiences.data[i].date_end
+      );
+      const jobDescriptions = await cv_model.readBy(
+        `users_job_descriptions`,
+        `users_experiences_id=${usersExperiences.data[i].users_experiences_id}`
+      );
+      usersExperiences.data[i].job_descriptions = jobDescriptions.data;
+    }
+
+    const usersLanguages = await cv_model.readBy(
+      `users_languages`,
+      `users_id=${req.params.id}`
+    );
+    const usersSkills = await cv_model.readBy(
+      `users_skills`,
+      `users_id=${req.params.id}`
+    );
+
+    const data = {
+      users_bio: usersBio.data[0],
+      users_certifications: usersCertifications.data,
+      users_contact: usersContact.data[0],
+      users_educations: usersEducations.data,
+      users_experiences: usersExperiences.data,
+      users_languages: usersLanguages.data,
+      users_skills: usersSkills.data,
+    };
+
+    return res.send(data);
+  } catch (err) {
+    return res.send({
+      status: "error",
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
+exports.view_bio = async (req, res) => {
+  try {
+    const usersBio = await cv_model.readBy(
+      `users_bio`,
+      `users_id=${req.params.id}`
+    );
+
+    usersBio.data = usersBio.data[0];
+
+    return res.send(usersBio.data);
+  } catch (err) {
+    return res.send({
+      status: "error",
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
+function formatDate(date) {
+  const newDate = new Date(date);
+  const monthDate = newDate.getMonth() + 1;
+  const yearDate = newDate.getFullYear();
+  return `${monthDate}/${yearDate}`;
+}

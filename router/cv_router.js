@@ -32,4 +32,6 @@ const upload = multer({
 module.exports = (app) => {
   app.post("/create-cv", cv_controller.create);
   app.post("/upload-photo", upload.single("file"), cv_controller.upload_photo);
+  app.get("/view-cv/:id", cv_controller.view);
+  app.get("/view-bio/:id", cv_controller.view_bio);
 };
