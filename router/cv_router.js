@@ -34,4 +34,5 @@ module.exports = (app) => {
   app.post("/upload-photo", upload.single("file"), cv_controller.upload_photo);
   app.get("/view-cv/:id", cv_controller.view);
   app.get("/view-bio/:id", cv_controller.view_bio);
+  app.post("/delete", cv_controller.delete);
 };

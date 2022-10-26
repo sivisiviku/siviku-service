@@ -27,9 +27,17 @@ exports.update = async (table, set, where) => {
 };
 
 exports.readBy = async (table, where) => {
-  result = await query.execute(
+  const result = await query.execute(
     database,
     `select * from ${table} where ${where}`
+  );
+  return result;
+};
+
+exports.delete = async (table, where) => {
+  const result = await query.execute(
+    database,
+    `delete from ${table} where ${where}`
   );
   return result;
 };

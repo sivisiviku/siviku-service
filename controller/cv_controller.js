@@ -12,179 +12,156 @@ exports.create = async (req, res) => {
       `1, "${req.body.firstName}", "${req.body.lastName}", "${req.body.occupation}", "${req.body.photo}", "${req.body.summary}", now(), now(), 1, 1`
     );
 
-    // IF INSERT BIO SUCCESSFUL, PROCEED TO INSERT CONTACT
-    if (insertedBio.data.insertId > 0) {
-      responseData.users_bio_id = insertedBio.data.insertId;
+    responseData.users_bio_id = insertedBio.data.insertId;
 
-      // INSERT CONTACT
-      const insertedContact = await cv_model.create(
-        `users_contact`,
-        `users_id, address, phone, email, linkedin, created, updated, created_by, updated_by`,
-        `1, "${req.body.contact.address}", "${req.body.contact.phone}", "${req.body.contact.email}", "${req.body.contact.linkedin}", now(), now(), 1, 1`
+    // INSERT CONTACT
+    const insertedContact = await cv_model.create(
+      `users_contact`,
+      `users_id, address, phone, email, linkedin, created, updated, created_by, updated_by`,
+      `1, "${req.body.contact.address}", "${req.body.contact.phone}", "${req.body.contact.email}", "${req.body.contact.linkedin}", now(), now(), 1, 1`
+    );
+
+    responseData.users_contact_id = insertedContact.data.insertId;
+
+    // INSERT LANGUAGES
+    const languageValues = req.body.languages.map((language) => [
+      "1",
+      language.name,
+      language.level,
+      dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+      dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+      "1",
+      "1",
+    ]);
+    const insertedLanguages = await cv_model.create_bulk(
+      `users_languages`,
+      `users_id, name, level, created, updated, created_by, updated_by`,
+      languageValues
+    );
+
+    // IF INSERT LANGUAGES SUCCESSFUL, PROCEED TO INSERT SKILLS
+    if (insertedLanguages.data.affectedRows === languageValues.length) {
+      responseData.languages_count = insertedLanguages.data.affectedRows;
+
+      // INSERT SKILLS
+      const skillValues = req.body.skills.map((skill) => [
+        "1",
+        skill.name,
+        skill.level,
+        dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+        dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+        "1",
+        "1",
+      ]);
+      const insertedSkills = await cv_model.create_bulk(
+        `users_skills`,
+        `users_id, name, level, created, updated, created_by, updated_by`,
+        skillValues
       );
 
-      // IF INSERT CONTACT SUCCESSFUL, PROCEED TO INSERT LANGUAGES
-      if (insertedContact.data.insertId > 0) {
-        responseData.users_contact_id = insertedContact.data.insertId;
+      responseData.skills_count = insertedSkills.data.affectedRows;
 
-        // INSERT LANGUAGES
-        const languageValues = req.body.languages.map((language) => [
+      // INSERT EXPERIENCES ONE BY ONE
+      for (let i = 0; i < req.body.experiences.length; i++) {
+        const insertedExperiences = await cv_model.create(
+          `users_experiences`,
+          `users_id, company_name, company_address, title, date_start, date_end, created, updated, created_by, updated_by`,
+          `1, "${req.body.experiences[i].companyName}", "${
+            req.body.experiences[i].companyAddress
+          }", "${req.body.experiences[i].title}", "${dateformat(
+            req.body.experiences[i].dateStart,
+            "yyyy-mm-dd HH:MM:ss"
+          )}", "${dateformat(
+            req.body.experiences[i].dateEnd,
+            "yyyy-mm-dd HH:MM:ss"
+          )}", now(), now(), 1, 1`
+        );
+
+        // IF INSERT EXPERIENCE ABOVE SUCCESSFUL, PROCEED TO INSERT JOB DESCRIPTIONS
+        // INSERT JOB DESCRIPTIONS
+        const jobDescriptionValues = req.body.experiences[
+          i
+        ].jobDescriptions.map((jobDescription) => [
+          insertedExperiences.data.insertId,
           "1",
-          language.name,
-          language.level,
+          jobDescription,
           dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
           dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
           "1",
           "1",
         ]);
-        const insertedLanguages = await cv_model.create_bulk(
-          `users_languages`,
-          `users_id, name, level, created, updated, created_by, updated_by`,
-          languageValues
+
+        const insertedJobDescriptions = await cv_model.create_bulk(
+          `users_job_descriptions`,
+          `users_experiences_id, users_id, job_description, created, updated, created_by, updated_by`,
+          jobDescriptionValues
         );
 
-        // IF INSERT LANGUAGES SUCCESSFUL, PROCEED TO INSERT SKILLS
-        if (insertedLanguages.data.affectedRows === languageValues.length) {
-          responseData.languages_count = insertedLanguages.data.affectedRows;
+        responseData.job_descriptions_count =
+          insertedJobDescriptions.data.affectedRows;
+      }
 
-          // INSERT SKILLS
-          const skillValues = req.body.skills.map((skill) => [
-            "1",
-            skill.name,
-            skill.level,
-            dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-            dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-            "1",
-            "1",
-          ]);
-          const insertedSkills = await cv_model.create_bulk(
-            `users_skills`,
-            `users_id, name, level, created, updated, created_by, updated_by`,
-            skillValues
-          );
+      responseData.experiences_count = req.body.experiences.length;
 
-          // IF INSERT SKILLS SUCCESSFUL, PROCEED TO INSERT EXPERIENCES
-          if (insertedSkills.data.affectedRows === skillValues.length) {
-            responseData.skills_count = insertedSkills.data.affectedRows;
+      // INSERT EDUCATIONS
+      const educationValues = req.body.educations.map((education) => [
+        "1",
+        education.schoolName,
+        education.schoolAddress,
+        education.major,
+        education.degree,
+        dateformat(education.dateGraduated, "yyyy-mm-dd HH:MM:ss"),
+        dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+        dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+        "1",
+        "1",
+      ]);
+      const insertedEducations = await cv_model.create_bulk(
+        `users_educations`,
+        `users_id, school_name, school_address, major, degree, date_graduated, created, updated, created_by, updated_by`,
+        educationValues
+      );
 
-            // INSERT EXPERIENCES ONE BY ONE
-            req.body.experiences.forEach(async (experience) => {
-              const insertedExperiences = await cv_model.create(
-                `users_experiences`,
-                `users_id, company_name, company_address, title, date_start, date_end, created, updated, created_by, updated_by`,
-                `1, "${experience.companyName}", "${
-                  experience.companyAddress
-                }", "${experience.title}", "${dateformat(
-                  experience.dateStart,
-                  "yyyy-mm-dd HH:MM:ss"
-                )}", "${dateformat(
-                  experience.dateEnd,
-                  "yyyy-mm-dd HH:MM:ss"
-                )}", now(), now(), 1, 1`
-              );
+      responseData.educations_count = insertedEducations.data.affectedRows;
 
-              // IF INSERT EXPERIENCE ABOVE SUCCESSFUL, PROCEED TO INSERT JOB DESCRIPTIONS
-              if (insertedExperiences.data.insertId > 0) {
-                // INSERT JOB DESCRIPTIONS
-                const jobDescriptionValues = experience.jobDescriptions.map(
-                  (jobDescription) => [
-                    insertedExperiences.data.insertId,
-                    "1",
-                    jobDescription,
-                    dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                    dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                    "1",
-                    "1",
-                  ]
-                );
-                const insertedJobDescriptions = await cv_model.create_bulk(
-                  `users_job_descriptions`,
-                  `users_experiences_id, users_id, job_description, created, updated, created_by, updated_by`,
-                  jobDescriptionValues
-                );
+      // INSERT EXPERIENCES ONE BY ONE
+      const certificationValues = req.body.certifications.map(
+        (certification) => [
+          "1",
+          certification,
+          dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+          dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+          "1",
+          "1",
+        ]
+      );
+      const insertedCertifications = await cv_model.create_bulk(
+        `users_certifications`,
+        `users_id, certification, created, updated, created_by, updated_by`,
+        certificationValues
+      );
 
-                // IF INSERT JOB DESCRIPTIONS FAIL, DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
-                if (
-                  insertedJobDescriptions.data.affectedRows !==
-                  jobDescriptionValues.length
-                ) {
-                  // DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
-                }
-              } else {
-                // DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
-              }
-            });
-
-            responseData.experiences_count = req.body.experiences.length;
-
-            // INSERT EDUCATIONS
-            const educationValues = req.body.educations.map((education) => [
-              "1",
-              education.schoolName,
-              education.schoolAddress,
-              education.major,
-              education.degree,
-              dateformat(education.dateGraduated, "yyyy-mm-dd HH:MM:ss"),
-              dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-              dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-              "1",
-              "1",
-            ]);
-            const insertedEducations = await cv_model.create_bulk(
-              `users_educations`,
-              `users_id, school_name, school_address, major, degree, date_graduated, created, updated, created_by, updated_by`,
-              educationValues
-            );
-
-            // IF INSERT EDUCATIONS SUCCESSFUL, PROCEED TO INSERT CERTIFICATIONS
-            if (
-              insertedEducations.data.affectedRows === educationValues.length
-            ) {
-              responseData.educations_count =
-                insertedEducations.data.affectedRows;
-
-              // INSERT EXPERIENCES ONE BY ONE
-              const certificationValues = req.body.certifications.map(
-                (certification) => [
-                  "1",
-                  certification,
-                  dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                  dateformat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                  "1",
-                  "1",
-                ]
-              );
-              const insertedCertifications = await cv_model.create_bulk(
-                `users_certifications`,
-                `users_id, certification, created, updated, created_by, updated_by`,
-                certificationValues
-              );
-
-              if (
-                insertedCertifications.data.affectedRows ===
-                certificationValues.length
-              ) {
-                responseData.certifications_count =
-                  insertedCertifications.data.affectedRows;
-                responseData.status = insertedCertifications.status;
-              } else {
-                // DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
-              }
-            } else {
-              // DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
-            }
-          } else {
-            // DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
-          }
-        } else {
-          // DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
-        }
-      } else {
-        // DELETE BIO, CONTACT, LANGUAGES, SKILLS, EXPERIENCES, JOB DESCRIPTIONS, EDUCATIONS, CERTIFICATIONS WITH USERS ID
+      if (
+        insertedCertifications.data.affectedRows === certificationValues.length
+      ) {
+        responseData.certifications_count =
+          insertedCertifications.data.affectedRows;
+        responseData.status = insertedCertifications.status;
       }
     }
     return res.send(responseData);
   } catch (err) {
+    delete_data(1, [
+      "users_bio",
+      "users_certifications",
+      "users_contact",
+      "users_educations",
+      "users_experiences",
+      "users_job_descriptions",
+      "users_languages",
+      "users_skills",
+    ]);
+
     return res.send({
       status: "error",
       message: err.message,
@@ -192,6 +169,23 @@ exports.create = async (req, res) => {
     });
   }
 };
+
+async function delete_data(id, tables) {
+  let response = {
+    countTableDeleted: 0,
+    tables: [],
+  };
+
+  for (let i = 0; i < tables.length; i++) {
+    const result = await cv_model.delete(`${tables[i]}`, `users_id=${id}`);
+    if (result.data.affectedRows > 0) {
+      response.countTableDeleted += 1;
+      response.tables.push(tables[i]);
+    }
+  }
+
+  return response;
+}
 
 exports.upload_photo = async (req, res) => {
   try {
@@ -309,3 +303,15 @@ function formatDate(date) {
   const yearDate = newDate.getFullYear();
   return `${monthDate}/${yearDate}`;
 }
+
+exports.delete = async (req, res) => {
+  try {
+    return res.send(await delete_data(req.body.id, req.body.tables));
+  } catch (err) {
+    return res.send({
+      status: "error",
+      message: err.message,
+      data: null,
+    });
+  }
+};
